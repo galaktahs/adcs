@@ -10,7 +10,7 @@ class Default:
             "Izz" : 0.007,
             "max_mass" : 0.3,
             "max_peak_power" : 3,
-            "max_avg_power" : 1.5 
+            "max_avg_power" : 1.5
         }
         self.sixU = {
             "x" : 100,

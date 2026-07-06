@@ -1,4 +1,3 @@
-
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -9,6 +8,7 @@ from PySide6.QtWidgets import (
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from properties import default
+from backend import Backend
 
 
 class MplCanvas(FigureCanvas):
@@ -33,6 +33,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("ADCS Actuator Sizing Tool (GUI Shell)")
         self.resize(1400, 850)
+        self.backend = Backend(self)
 
         splitter = QSplitter(Qt.Horizontal)
 
@@ -62,12 +63,13 @@ class MainWindow(QMainWindow):
         #ALtitude
         self.orbit_combo = QSpinBox()
         self.orbit_combo.setRange(300, 800)
+        self.orbit_combo.valueChanged.connect(self.backend.newAlt)
 
         #Inclination
         self.inclination = QDoubleSpinBox()
         self.inclination.setRange(0, 98)
         self.inclination.setDecimals(1)
-
+        self.inclination.valueChanged.connect(self.backend.newInclination)
 
         orbit_layout.addRow("Orbit Altitude (km):", self.orbit_combo)
         orbit_layout.addRow("Inclination (degrees):", self.inclination)
@@ -78,11 +80,11 @@ class MainWindow(QMainWindow):
         orbital_layout = QFormLayout()
 
         #TODO add connection to the back end math
-        self.period_label = QLabel("--")
-        self.velocity_label = QLabel("--")
-        self.density_label = QLabel("--")
-        self.min_mag_label = QLabel("--")
-        self.max_mag_label = QLabel("--")
+        self.period_label = QLabel(str(round(self.backend.period/60, 3)))
+        self.velocity_label = QLabel(str(round(self.backend.velocity, 3)))
+        self.density_label = QLabel(str(format(self.backend.density, ".2e")))
+        self.min_mag_label = QLabel(str(format(self.backend.minMag, ".2e")))
+        self.max_mag_label = QLabel(str(format(self.backend.maxMag, ".2e")))
 
         orbital_layout.addRow("Period Time (min):", self.period_label)
         orbital_layout.addRow("Velocity (km/s):", self.velocity_label)
