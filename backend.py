@@ -18,6 +18,7 @@ class Backend(QObject):
         used for the weird init
         """
         self.updateOrbit()
+        self.initCoil() # always default tab, needs to be updated manually
 
     ###                              ###
     #    ORBITAL PARAMETER HANDLING    #
@@ -46,6 +47,10 @@ class Backend(QObject):
         """
         self.form = value
         self.updateDisturbance()
+        match (self.frontend.tabs.currentIndex()):
+            case 0:
+                self.updateCoil()
+                # TODO: add other tabs when they are done
 
     def updateOrbit(self):
         """
@@ -78,3 +83,123 @@ class Backend(QObject):
         self.frontend.disturbance_canvas.ax.set_title("Disturbance comparison")
         self.frontend.disturbance_canvas.ax.bar(["Gravity", "Drag", "Solar", "Magnetic"], [self.gg, self.drag, self.srp, self.mag])
         self.frontend.disturbance_canvas.draw()
+
+    ###                 ###
+    #    Actuator tabs    #
+    ###                 ###
+
+    def tabChanged(self, value):
+        """
+        Active tab changed
+        """
+        match(value):
+            case 0:
+                self.initCoil()
+
+    ###                              ###
+    #    Magnetotorquer Coil Sizing    #
+    ###                              ###
+
+    def initCoil(self):
+        """
+        Initialize all values needed for coil tab
+        """
+        self.coilVolt = self.frontend.coil_volt.value()
+        self.coilDiameter = self.frontend.coil_diameter.value()/1000
+        self.coilShape = self.frontend.coil_shape.currentText()
+        self.coilTurns = self.frontend.coil_turns.value()
+        self.coilMat = self.frontend.coil_mat.currentText()
+
+        # weird order to avoid crashes (should maybe be changed to a try ... except)
+        self.dipoleTarget = 2*self.total/self.minMag
+        self.updateCoil()
+        self.frontend.dipole_target.setValue(self.dipoleTarget) #this will trigger newDipoleTarget()
+
+
+    @Slot(int)
+    def newDipoleTarget(self, value):
+        """
+        User has supplied new Target Dipole Momen
+        """
+        self.dipoleTarget = value
+        self.updateCoilPassFail() # save some processing power
+
+    @Slot(int)
+    def newCoilVolt(self, value):
+        """
+        User has supplied new Supply Voltage
+        """
+        self.coilVolt = value
+        self.updateCoil()
+
+    @Slot(int)
+    def newCoilDiameter(self, value):
+        """
+        User has supplied new Wire Diameter
+        """
+        self.coilDiameter = value
+        self.updateCoil()
+
+    @Slot(str)
+    def newCoilShape(self, value):
+        """
+        User has supplied new Coil Shape
+        """
+        self.coilShape = value
+        self.updateCoil()
+
+    @Slot(int)
+    def newCoilTurns(self, value):
+        """
+        User has supplied new Number of Turns
+        """
+        self.coilTurns = value
+        self.updateCoil()
+
+    @Slot(str)
+    def newCoilMat(self, value):
+        """
+        User has supplied new Wire Material
+        """
+        self.coilMat = value
+        self.updateCoil()
+
+
+    def updateCoil(self):
+        """
+        Calculate all the coil parameters and push to frontend
+        """
+        self.dipole, self.resistance, self.current, self.power, self.mass, self.turns, self.length = calcCoil(self.coilVolt, self.coilDiameter, self.coilShape, self.coilTurns, self.coilMat, self.form)
+
+        self.frontend.dipole_label.setText(str(round(self.dipole, 3)))
+        self.frontend.resistance_label.setText(str(round(self.resistance, 3)))
+        self.frontend.current_label.setText(str(round(self.current, 3)))
+        self.frontend.power_label.setText(str(round(self.power, 3)))
+        self.frontend.mass_label.setText(str(round(self.mass, 3)))
+        self.frontend.turns_label.setText(str(round(self.turns, 3)))
+        self.frontend.length_label.setText(str(round(self.length, 3)))
+
+        self.updateCoilPassFail()
+
+
+    def updateCoilPassFail(self):
+        """
+        Calculate the coil pass/fail and push to frontend
+        """
+        default = Default()
+        match (self.form):
+            case "3U":
+                satParams = default.threeU
+            case "6U":
+                satParams = default.sixU
+            case "12U":
+                satParams = default.twelveU
+        if self.dipole >= self.dipoleTarget \
+            and self.power <= satParams["max_avg_power"] \
+            and self.mass <= satParams["max_mass"]:
+            self.frontend.coil_status.setText("PASS")
+            self.frontend.coil_status.setStyleSheet("background: green; color: white; padding: 6px;")
+        else:
+            self.frontend.coil_status.setText("FAIL")
+            self.frontend.coil_status.setStyleSheet("background: red; color: white; padding: 6px;")
+

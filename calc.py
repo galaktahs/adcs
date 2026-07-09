@@ -6,7 +6,11 @@ from properties import Default
 g_EarthRadius = 6378
 g_Mu = 398000
 g_B0 = 3.12*10**-5
+g_coilMat = {
+    "Copper":{"density":8935, "resistivity":16.78*10**-9},
+    "Aluminium":{"density":2699, "resistivity":26.5*10**-9}
 
+}
 def calcOrbit(altitude, inclination):
     """
     Calculate the environment for the given orbit
@@ -18,7 +22,7 @@ def calcOrbit(altitude, inclination):
         density = (8.25711*10**-9)*0.9811**altitude
     else:
         density = (3.5*10**-7)*0.97188**altitude
-    minMag = g_B0*(g_EarthRadius/(altitude+g_EarthRadius))**3
+    minMag = g_B0*((g_EarthRadius/(altitude+g_EarthRadius))**3)
     if 90 >= inclination:
         maxMag = minMag + minMag*(math.sqrt(3)-1)*(inclination/90)
     else:
@@ -54,3 +58,37 @@ def calcDisturbance(velocity, angVelocity, density, maxMag, form):
     mag = satParams["m_res"]*maxMag
 
     return (gg, drag, srp, mag)
+
+def calcCoil(voltage, diameter, shape, turns, mat, form):
+    """
+    calculate parameters for a specified coil
+    """
+    default = Default()
+    match (form):
+        case "3U":
+            satParams = default.threeU
+        case "6U":
+            satParams = default.sixU
+        case "12U":
+            satParams = default.twelveU
+
+    match(shape):
+        case "Square":
+            area = (min(satParams["x"], satParams["y"])/1000)**2
+            perimeter = (min(satParams["x"], satParams["y"])/1000)*4
+        case "Rectangular":
+            area = satParams["x"]/1000 * satParams["y"]/1000
+            perimeter = 2*satParams["x"]/1000 + 2*satParams["y"]/1000
+        case "Circular":
+            area = math.pi*(min(satParams["x"], satParams["y"])/2000)**2
+            perimeter = math.pi*(min(satParams["x"], satParams["y"])/1000)
+        case _:
+            print(shape)
+    resistance = g_coilMat[mat]["resistivity"]*(turns*perimeter*4)/(math.pi*diameter**2)
+    current = voltage/resistance
+    moment = turns*current*area
+    power = (voltage**2)/resistance
+    mass = turns*perimeter*math.pi*diameter**2*g_coilMat[mat]["density"]/4
+    length = turns*perimeter
+
+    return (moment, resistance, current, power, mass, turns, length)

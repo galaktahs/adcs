@@ -38,7 +38,9 @@ class MainWindow(QMainWindow):
         splitter = QSplitter(Qt.Horizontal)
 
         splitter.addWidget(self.create_left_panel())
-        splitter.addWidget(self.create_tabs())
+        self.tabs = self.create_tabs()
+        self.tabs.currentChanged.connect(self.backend.tabChanged)
+        splitter.addWidget(self.tabs)
 
         splitter.setSizes([350, 1000])
 
@@ -150,38 +152,43 @@ class MainWindow(QMainWindow):
         inputs = QGroupBox("Inputs")
         inputs_layout = QFormLayout()
 
-        self.dipole_taget = QDoubleSpinBox()
-        self.dipole_taget.setRange(0.01, 10)
-        self.dipole_taget.setDecimals(2)
-        self.dipole_taget.setValue(default.coil["m_target"])
-        #INSERT SET VALUE BASED ON ORBIT
+        self.dipole_target = QDoubleSpinBox()
+        self.dipole_target.setRange(0.01, 10)
+        self.dipole_target.setDecimals(2)
+        self.dipole_target.setValue(default.coil["m_target"])
+        self.dipole_target.valueChanged.connect(self.backend.newDipoleTarget)
 
         self.coil_volt = QDoubleSpinBox()
         self.coil_volt.setRange(1.8, 12)
         self.coil_volt.setDecimals(2)
         self.coil_volt.setValue(default.coil["v_supply"])
+        self.coil_volt.valueChanged.connect(self.backend.newCoilVolt)
 
         self.coil_diameter = QDoubleSpinBox()
         self.coil_diameter.setRange(0.05, 1.0)
         self.coil_diameter.setDecimals(2)
         self.coil_diameter.setValue(default.coil["d_w"])
+        self.coil_diameter.valueChanged.connect(self.backend.newCoilDiameter)
 
         self.coil_shape = QComboBox()
         self.coil_shape.addItems(["Square", "Rectangular", "Circular"])
         #self.coil_shape.setValue(default.coil["shape"])
+        self.coil_shape.currentTextChanged.connect(self.backend.newCoilShape)
 
         self.coil_turns = QSpinBox()
         self.coil_turns.setRange(1, 2000)
         self.coil_turns.setValue(default.coil["n"])
+        self.coil_turns.valueChanged.connect(self.backend.newCoilTurns)
         #INSERT FUNCTION TO GET REASONABLE SET VALUE
 
 
         self.coil_mat = QComboBox()
         self.coil_mat.addItems(["Copper", "Aluminium"])
         #self.coil_mat.setValue(default.coil["material"])
+        self.coil_mat.currentTextChanged.connect(self.backend.newCoilMat)
 
 
-        inputs_layout.addRow("Target Dipole Moment:", self.dipole_taget)
+        inputs_layout.addRow("Target Dipole Moment:", self.dipole_target)
         inputs_layout.addRow("Supply Voltage:", self.coil_volt)
         inputs_layout.addRow("Wire Diameter", self.coil_diameter)
         inputs_layout.addRow("Coil Shape", self.coil_shape)
@@ -193,15 +200,22 @@ class MainWindow(QMainWindow):
         outputs = QGroupBox("Outputs")
         outputs_layout = QFormLayout()
 
+        self.dipole_label = QLabel("--")
+        self.resistance_label = QLabel("--")
+        self.current_label = QLabel("--")
+        self.power_label = QLabel("--")
+        self.mass_label = QLabel("--")
+        self.turns_label = QLabel("--")
+        self.length_label = QLabel("--")
 
-        #TODO Add the values to connect here
-        outputs_layout.addRow("Achieved Moment:", QLabel("--"))
-        outputs_layout.addRow("Coil Resistance (Ohm):", QLabel("--"))
-        outputs_layout.addRow("Operating Curren (A):", QLabel("--"))
-        outputs_layout.addRow("Power Consumption (W):", QLabel("--"))
-        outputs_layout.addRow("Coil Mass:", QLabel("--"))
-        outputs_layout.addRow("Number of Turns:", QLabel(self.coil_turns))
-        outputs_layout.addRow("Total Wire Lenght:", QLabel("--"))
+
+        outputs_layout.addRow("Achieved Moment:", self.dipole_label)
+        outputs_layout.addRow("Coil Resistance (Ohm):", self.resistance_label)
+        outputs_layout.addRow("Operating Current (A):", self.current_label)
+        outputs_layout.addRow("Power Consumption (W):", self.power_label)
+        outputs_layout.addRow("Coil Mass: (kg)", self.mass_label)
+        outputs_layout.addRow("Number of Turns:", self.turns_label)
+        outputs_layout.addRow("Total Wire Length: (m)", self.length_label)
         #TODO Add graph
 
         self.coil_status = QLabel("PASS")
