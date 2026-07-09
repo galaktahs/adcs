@@ -53,6 +53,7 @@ class MainWindow(QMainWindow):
 
         self.form_factor_combo = QComboBox()
         self.form_factor_combo.addItems(["3U", "6U", "12U"])
+        self.form_factor_combo.currentTextChanged.connect(self.backend.newForm)
 
         cubesat_layout.addRow("Form Factor:", self.form_factor_combo)
         cubesat_group.setLayout(cubesat_layout)
@@ -79,12 +80,11 @@ class MainWindow(QMainWindow):
         orbital_group = QGroupBox("Orbital Summary")
         orbital_layout = QFormLayout()
 
-        #TODO add connection to the back end math
-        self.period_label = QLabel(str(round(self.backend.period/60, 3)))
-        self.velocity_label = QLabel(str(round(self.backend.velocity, 3)))
-        self.density_label = QLabel(str(format(self.backend.density, ".2e")))
-        self.min_mag_label = QLabel(str(format(self.backend.minMag, ".2e")))
-        self.max_mag_label = QLabel(str(format(self.backend.maxMag, ".2e")))
+        self.period_label = QLabel("--")
+        self.velocity_label = QLabel("--")
+        self.density_label = QLabel("--")
+        self.min_mag_label = QLabel("--")
+        self.max_mag_label = QLabel("--")
 
         orbital_layout.addRow("Period Time (min):", self.period_label)
         orbital_layout.addRow("Velocity (km/s):", self.velocity_label)
@@ -347,5 +347,6 @@ if __name__ == "__main__":
 
     window = MainWindow()
     window.show()
+    window.backend.update()
 
     app.exec()
