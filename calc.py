@@ -11,6 +11,11 @@ g_coilMat = {
     "Aluminium":{"density":2699, "resistivity":26.5*10**-9}
 
 }
+g_rodMat = {
+    "Mu-metal":{"density":8747, "mu_r" = 20000}, # CarTech HyMu 800
+    "Permalloy":{"density":8250, "mu_r" = 8000}, #ATI Moly Permalloy
+    "Ferrite":{"density":5000, "mu_r" = 1000}, #Eclipse magnetic ferrite magnets typ. value
+}
 def calcOrbit(altitude, inclination):
     """
     Calculate the environment for the given orbit
@@ -92,3 +97,23 @@ def calcCoil(voltage, diameter, shape, turns, mat, form):
     length = turns*perimeter
 
     return (moment, resistance, current, power, mass, turns, length)
+
+
+def calcRod(voltage, rodWireDiameter, rodCoreDiameter, rodLength, rodMat, rodLayers)
+    """
+    calculate parameters for a specific rod
+    """
+
+    maxTurns = rodLength/rodWireDiameter
+    turns = maxTurns*rodLayers
+
+    resistance = g_coilMat["copper"]["resistivity"]*(turns*rodCoreDiameter*math.pi*4)/(math.pi*rodWireDiameter**2)
+    current = voltage/resistance
+    power = (voltage**2)/resistance
+    rodRadius = rodCoreDiameter/2
+    N_d = (4*(math.log(rodLength/rodRadius)-1))/((rodLength/rodRadius)**2-4*math.log(rodLength/rodRadius))
+    mu_eff = 1+((g_rodMat[rodMat]["mu_r"]-1)/(1+(g_rodMat[rodMat]["mu_r"]-1)*N_d)
+    dipole = math.pi*rodRadius*turns*current*mu_eff
+
+
+    return (dipole, resistance, current, power, mass, turns, mu_eff, N_d, maxTurns)

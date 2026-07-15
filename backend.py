@@ -49,7 +49,9 @@ class Backend(QObject):
         self.updateDisturbance()
         match (self.frontend.tabs.currentIndex()):
             case 0:
-                self.updateCoil()
+                self.initCoil()
+            case 1:
+                self.updateRod()
                 # TODO: add other tabs when they are done
 
     def updateOrbit(self):
@@ -95,6 +97,9 @@ class Backend(QObject):
         match(value):
             case 0:
                 self.initCoil()
+            case 1:
+                self.initRod()
+            # TODO: add more tabs
 
     ###                              ###
     #    Magnetotorquer Coil Sizing    #
@@ -111,9 +116,9 @@ class Backend(QObject):
         self.coilMat = self.frontend.coil_mat.currentText()
 
         # weird order to avoid crashes (should maybe be changed to a try ... except)
-        self.dipoleTarget = 2*self.total/self.minMag
+        self.coilDipoleTarget = 2*self.total/self.minMag
         self.updateCoil()
-        self.frontend.dipole_target.setValue(self.dipoleTarget) #this will trigger newDipoleTarget()
+        self.frontend.dipole_target.setValue(self.coilDipoleTarget) #this will trigger newDipoleTarget()
 
 
     @Slot(int)
@@ -121,7 +126,7 @@ class Backend(QObject):
         """
         User has supplied new Target Dipole Momen
         """
-        self.dipoleTarget = value
+        self.coilDipoleTarget = value
         self.updateCoilPassFail() # save some processing power
 
     @Slot(int)
@@ -194,7 +199,7 @@ class Backend(QObject):
                 satParams = default.sixU
             case "12U":
                 satParams = default.twelveU
-        if self.dipole >= self.dipoleTarget \
+        if self.dipole >= self.coilDipoleTarget \
             and self.power <= satParams["max_avg_power"] \
             and self.mass <= satParams["max_mass"]:
             self.frontend.coil_status.setText("PASS")
@@ -202,4 +207,28 @@ class Backend(QObject):
         else:
             self.frontend.coil_status.setText("FAIL")
             self.frontend.coil_status.setStyleSheet("background: red; color: white; padding: 6px;")
+
+
+    ###                             ###
+    #    Magnetotorquer Rod Sizing    #
+    ###                             ###
+    def initRod(self):
+        """
+        Initialize all values needed for rod tab
+        """
+        self.rodVolt = 3
+        self.rodWireDiameter = 0.15/1000
+        self.rodCoreDiameter = 8/1000
+        self.rodLength = 60/1000
+        self.rodMaterial = "Mu-metal"
+        self.rodLayers = 1
+
+        # weird order to avoid crashes (should maybe be changed to a try ... except)
+        self.rodDipoleTarget = 2*self.total/self.minMag
+        self.updateRod()
+
+    def updateRod(self):
+        self.dipole, self.resistance, self.current, self.power, self.mass, self.turns, self.mu_eff, self.N_d, self.maxTurns = calcRod(self.rodVolt, self.rodWireDiameter, self.rodCoreDiameter, self.rodLength, self.RodMaterial, self.rodLayers)
+
+        # TODO: update frontend once frontend is able to be updated
 
