@@ -12,9 +12,14 @@ g_coilMat = {
 
 }
 g_rodMat = {
-    "Mu-metal":{"density":8747, "mu_r" = 20000}, # CarTech HyMu 800
-    "Permalloy":{"density":8250, "mu_r" = 8000}, #ATI Moly Permalloy
-    "Ferrite":{"density":5000, "mu_r" = 1000}, #Eclipse magnetic ferrite magnets typ. value
+    "Mu-metal":{"density":8747, "mu_r":20000}, # CarTech HyMu 800
+    "Permalloy":{"density":8250, "mu_r":8000}, #ATI Moly Permalloy
+    "Ferrite":{"density":5000, "mu_r":1000}, #Eclipse magnetic ferrite magnets typ. value
+}
+g_wheelMat = {
+    "Aluminium":{"density":2700},
+    "Steel":{"density":7800},
+    "Titanium":{"density":4500}
 }
 def calcOrbit(altitude, inclination):
     """
@@ -99,7 +104,7 @@ def calcCoil(voltage, diameter, shape, turns, mat, form):
     return (moment, resistance, current, power, mass, turns, length)
 
 
-def calcRod(voltage, rodWireDiameter, rodCoreDiameter, rodLength, rodMat, rodLayers)
+def calcRod(voltage, rodWireDiameter, rodCoreDiameter, rodLength, rodMat, rodLayers):
     """
     calculate parameters for a specific rod
     """
@@ -112,8 +117,35 @@ def calcRod(voltage, rodWireDiameter, rodCoreDiameter, rodLength, rodMat, rodLay
     power = (voltage**2)/resistance
     rodRadius = rodCoreDiameter/2
     N_d = (4*(math.log(rodLength/rodRadius)-1))/((rodLength/rodRadius)**2-4*math.log(rodLength/rodRadius))
-    mu_eff = 1+((g_rodMat[rodMat]["mu_r"]-1)/(1+(g_rodMat[rodMat]["mu_r"]-1)*N_d)
+    mu_eff = 1+((g_rodMat[rodMat]["mu_r"]-1)/(1+(g_rodMat[rodMat]["mu_r"]-1)*N_d))
     dipole = math.pi*rodRadius*turns*current*mu_eff
 
 
     return (dipole, resistance, current, power, mass, turns, mu_eff, N_d, maxTurns)
+
+
+def calcWheel(wheelAngle, wheelTime, wheelSlewAxis, wheelShape, wheelOuterRadius, wheelInnerRadius, wheelThiccness, wheelMaterial, wheelMaxSpeed, wheelInterval, form)
+    default = Default()
+    match (form):
+        case "3U":
+            satParams = default.threeU
+        case "6U":
+            satParams = default.sixU
+        case "12U":
+            satParams = default.twelveU
+
+    torqueRequirement = (4*wheelAngle*satParams["I"+2*wheelSlewAxis])/(wheelTime**2)
+
+    match (wheelShape):
+        case "Solid Disk":
+            mass = math.pi*wheelOuterRadius**2*wheelThiccnes*g_wheelMat[wheelMaterial]["density"]
+            inertia = 0.5*mass*wheelOuterRadius**2
+        case "Hollow Cylinder":
+            mass = math.pi*(wheelOuterRadius**2-wheelInnerRadius**2)*wheelThiccnes*g_wheelMat[wheelMaterial]["density"]
+            inertia = 0.5*mass*(wheelOuterRadius**2+wheelInnerRadius**2)
+        case _:
+            print("invalid shape")
+
+    maxAngularMomentum = inertia*wheelMaxSpeed
+
+    return (torqueRequirement, mass, maxAngularMomentum)

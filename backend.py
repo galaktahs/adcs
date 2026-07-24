@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QApplication, QLabel
 from PySide6.QtCore import QObject, Signal, Slot
 from calc import *
+from math import *
 
 class Backend(QObject):
     """
@@ -49,10 +50,11 @@ class Backend(QObject):
         self.updateDisturbance()
         match (self.frontend.tabs.currentIndex()):
             case 0:
-                self.initCoil()
+                self.updateCoil()
             case 1:
                 self.updateRod()
-                # TODO: add other tabs when they are done
+            case 2:
+                self.updateWheel()
 
     def updateOrbit(self):
         """
@@ -99,7 +101,8 @@ class Backend(QObject):
                 self.initCoil()
             case 1:
                 self.initRod()
-            # TODO: add more tabs
+            case 2:
+                self.initWheel()
 
     ###                              ###
     #    Magnetotorquer Coil Sizing    #
@@ -216,6 +219,7 @@ class Backend(QObject):
         """
         Initialize all values needed for rod tab
         """
+        #TODO: take values from frontend
         self.rodVolt = 3
         self.rodWireDiameter = 0.15/1000
         self.rodCoreDiameter = 8/1000
@@ -228,7 +232,35 @@ class Backend(QObject):
         self.updateRod()
 
     def updateRod(self):
+        """
+        Calculate all the rod parameters and push to frontend
+        """
         self.dipole, self.resistance, self.current, self.power, self.mass, self.turns, self.mu_eff, self.N_d, self.maxTurns = calcRod(self.rodVolt, self.rodWireDiameter, self.rodCoreDiameter, self.rodLength, self.RodMaterial, self.rodLayers)
 
         # TODO: update frontend once frontend is able to be updated
+
+
+    ###                         ###
+    #    Reaction Wheel Sizing    #
+    ###                         ###
+    def initWheel(self):
+        """
+        Initialize all values needed for wheel tab
+        """
+        #TODO: take values from frontend
+        self.wheelAngle = math.radians(30)
+        self.wheelTime = 90
+        self.wheelslewAxis = "x"
+        self.wheelShape = "Solid Disk"
+        self.wheelOuterRadius = 30/1000
+        self.wheelInnerRadius = 20/1000
+        self.wheelThiccness = 10/1000
+        self.wheelMaterial = "Aluminium"
+        self.wheelMaxSpeed = (6000*math.tau)/60
+        self.wheelInterval = 1
+
+        self.updateWheel()
+
+    def updateWheel(self):
+        self.torque, self.mass, self.maxAngularMomentum = calcWheel(self.wheelAngle, self.wheelTime, self.wheelSlewAxis, self.wheelShape, self.wheelOuterRadius, self.wheelInnerRadius, self.wheelThiccness, self.wheelMaterial, self.wheelMaxSpeed, self.wheelInterval, self.form)
 
